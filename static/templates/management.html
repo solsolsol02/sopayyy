@@ -1,69 +1,120 @@
 {% extends "base.html" %}
 
-{% block title %}Manajemen{% endblock %}
-
 {% block content %}
-<div class="dashboard-container">
-    <div class="dashboard-header">
-        <h2>Dashboard Manajemen</h2>
-        <p>Ringkasan kinerja perusahaan dan analisis bisnis</p>
+<div class="row">
+    <div class="col-md-12">
+        <h1 class="mb-4">Dashboard Manajemen</h1>
     </div>
+</div>
 
-    <div class="stats-grid">
-        <div class="stat-card">
-            <h3>Pendapatan Bulan Ini</h3>
-            <p class="stat-value">Rp 125.250.000</p>
-            <p class="stat-change">+12.5% dari bulan lalu</p>
-        </div>
-        <div class="stat-card">
-            <h3>Total Penjualan</h3>
-            <p class="stat-value">8.452</p>
-            <p class="stat-change">+8.3% dari bulan lalu</p>
-        </div>
-        <div class="stat-card">
-            <h3>Produk Terlaris</h3>
-            <p class="stat-value">Product A</p>
-            <p class="stat-change">1.250 terjual</p>
-        </div>
-        <div class="stat-card">
-            <h3>Inventory Status</h3>
-            <p class="stat-value">82%</p>
-            <p class="stat-change">5 produk stok rendah</p>
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Total Penjualan</h5>
+                <p class="card-text display-6">Rp {{ "{:,.0f}".format(statistics.total_revenue) }}</p>
+            </div>
         </div>
     </div>
-
-    <div class="charts-row">
-        <div class="chart-container">
-            <h3>Tren Penjualan 30 Hari Terakhir</h3>
-            <canvas id="salesChart"></canvas>
-        </div>
-        <div class="chart-container">
-            <h3>Peramalan Penjualan</h3>
-            <canvas id="forecastChart"></canvas>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Total Item Terjual</h5>
+                <p class="card-text display-6">{{ statistics.total_sales }}</p>
+            </div>
         </div>
     </div>
-
-    <div class="charts-row">
-        <div class="chart-container">
-            <h3>Status Inventory</h3>
-            <canvas id="inventoryChart"></canvas>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">Rata-rata Harian</h5>
+                <p class="card-text display-6">{{ statistics.avg_daily_sales|round|int }} item/hari</p>
+            </div>
         </div>
-        <div class="chart-container">
-            <h3>Top 5 Produk Terlaris</h3>
-            <canvas id="topProductsChart"></canvas>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Forecasting Penjualan 7 Hari Ke Depan</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Perkiraan Penjualan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for forecast in forecasting %}
+                        <tr>
+                            <td>{{ forecast.date }}</td>
+                            <td>{{ forecast.sales|round|int }} item</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Tren Penjualan per Kategori</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="trendChart" height="200"></canvas>
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        loadSalesChart();
-        loadForecastChart();
-        loadInventoryChart();
-        loadTopProductsChart();
+        const trendData = {
+            labels: [{% for category, value in sales_trend.items() %}"{{ category }}",{% endfor %}],
+            datasets: [{
+                label: 'Rata-rata Penjualan',
+                data: [{% for category, value in sales_trend.items() %}{{ value }},{% endfor %}],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)'
+                ],
+                borderWidth: 1
+            }]
+        };
+        
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: trendData,
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
     });
 </script>
 {% endblock %}
