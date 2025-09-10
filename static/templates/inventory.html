@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h2>Dashboard Inventory (Gudang)</h2>
+        <p>Selamat datang, {{ session.fullname }}</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Total Produk</h3>
+            <p class="stat-value">125</p>
+            <p class="stat-change">+5 dari bulan lalu</p>
+        </div>
+        <div class="stat-card">
+            <h3>Nilai Inventory</h3>
+            <p class="stat-value">Rp 250 Juta</p>
+            <p class="stat-change">+12.5% dari bulan lalu</p>
+        </div>
+        <div class="stat-card">
+            <h3>Produk Stok Rendah</h3>
+            <p class="stat-value">8</p>
+            <p class="stat-change">Perlu restok segera</p>
+        </div>
+        <div class="stat-card">
+            <h3>Turnover Ratio</h3>
+            <p class="stat-value">4.2</p>
+            <p class="stat-change">+0.5 dari bulan lalu</p>
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <a href="{{ url_for('inventory_report') }}" class="btn btn-primary">Laporan Inventory</a>
+        <button class="btn btn-secondary" onclick="alert('Fitur akan segera tersedia')">Kelola Stok</button>
+        <button class="btn btn-secondary" onclick="alert('Fitur akan segera tersedia')">Penerimaan Barang</button>
+    </div>
+
+    <div class="charts-row">
+        <div class="chart-container">
+            <h3>Status Stok Inventory</h3>
+            <canvas id="inventoryChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Pergerakan Inventory</h3>
+            <canvas id="movementChart"></canvas>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <h3>Produk dengan Stok Rendah</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Produk</th>
+                    <th>Stok Saat Ini</th>
+                    <th>Stok Minimum</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="low-stock-body">
+                <!-- Data will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-container">
+        <h3>Pergerakan Inventory Terbaru</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Produk</th>
+                    <th>Tipe</th>
+                    <th>Jumlah</th>
+                    <th>Tanggal</th>
+                    <th>Keterangan</th>
+                </tr>
+            </thead>
+            <tbody id="movement-body">
+                <!-- Data will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        loadInventoryStatus();
+        loadInventoryMovements();
+        loadMovementChart();
+    });
+
+    async function loadInventoryStatus() {
+        const response = await fetch('/api/inventory_status');
+        const data = await response.json();
+        
+        // Update inventory chart
+        const ctx = document.getElementById('inventoryChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Stok Rendah', 'Stok Cukup'],
+                datasets: [{
+                    data: [data.low_stock, data.sufficient_stock],
+                    backgroundColor: [
+                        'rgba(231, 76, 60, 0.8)',
+                        'rgba(46, 204, 113, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(231, 76, 60, 1)',
+                        'rgba(46, 204, 113, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+        
+        // Update low stock table
+        const tableBody = document.getElementById('low-stock-body');
+        tableBody.innerHTML = '';
+        
+        data.low_stock_items.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.name}</td>
+                <td>${item.stock}</td>
+                <td>${item.min_stock}</td>
+                <td><span class="status-badge status-warning">Stok Rendah</span></td>
+                <td><button class="btn btn-small" onclick="alert('Meminta restok untuk ${item.name}')">Minta Restok</button></td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    async function loadInventoryMovements() {
+        const response = await fetch('/api/inventory_movements');
+        const data = await response.json();
+        
+        const tableBody = document.getElementById('movement-body');
+        tableBody.innerHTML = '';
+        
+        data.forEach(movement => {
+            const row = document.createElement('tr');
+            
+            // Determine type class
+            let typeClass = movement.type === 'in' ? 'status-completed' : 'status-warning';
+            let typeText = movement.type === 'in' ? 'Masuk' : 'Keluar';
+            
+            row.innerHTML = `
+                <td>${movement.product}</td>
+                <td><span class="status-badge ${typeClass}">${typeText}</span></td>
+                <td>${movement.quantity}</td>
+                <td>${movement.date}</td>
+                <td>${movement.notes}</td>
+            `;
+            
+            tableBody.appendChild(row);
+        });
+    }
+
+    async function loadMovementChart() {
+        // Simulated movement data
+        const ctx = document.getElementById('movementChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun'],
+                datasets: [
+                    {
+                        label: 'Barang Masuk',
+                        data: [120, 150, 180, 90, 130, 160],
+                        backgroundColor: 'rgba(46, 204, 113, 0.5)',
+                        borderColor: 'rgba(46, 204, 113, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Barang Keluar',
+                        data: [100, 130, 160, 80, 110, 140],
+                        backgroundColor: 'rgba(231, 76, 60, 0.5)',
+                        borderColor: 'rgba(231, 76, 60, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Jumlah'
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

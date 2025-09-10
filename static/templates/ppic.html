@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}PPIC{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h2>Dashboard PPIC (Perencanaan dan Pengendalian Inventory)</h2>
+        <p>Selamat datang, {{ session.fullname }}</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Total Produk</h3>
+            <p class="stat-value">125</p>
+            <p class="stat-change">+5 dari bulan lalu</p>
+        </div>
+        <div class="stat-card">
+            <h3>Permintaan Bulan Ini</h3>
+            <p class="stat-value">8.452</p>
+            <p class="stat-change">+8.3% dari bulan lalu</p>
+        </div>
+        <div class="stat-card">
+            <h3>Rata-rata Waktu Produksi</h3>
+            <p class="stat-value">3.2 Hari</p>
+            <p class="stat-change">-0.5 dari bulan lalu</p>
+        </div>
+        <div class="stat-card">
+            <h3>Tingkat Pemenuhan</h3>
+            <p class="stat-value">94.5%</p>
+            <p class="stat-change">+2.1% dari bulan lalu</p>
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <a href="{{ url_for('production_plan') }}" class="btn btn-primary">Rencana Produksi</a>
+        <a href="{{ url_for('forecasting') }}" class="btn btn-secondary">Peramalan Permintaan</a>
+        <a href="{{ url_for('inventory_report') }}" class="btn btn-secondary">Laporan Inventory</a>
+    </div>
+
+    <div class="charts-row">
+        <div class="chart-container">
+            <h3>Rencana vs Aktual Produksi</h3>
+            <canvas id="productionChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Trend Permintaan Produk</h3>
+            <canvas id="demandChart"></canvas>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <h3>Rencana Produksi Terbaru</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Produk</th>
+                    <th>Rencana Jumlah</th>
+                    <th>Actual Jumlah</th>
+                    <th>Status</th>
+                    <th>Tanggal Jatuh Tempo</th>
+                </tr>
+            </thead>
+            <tbody id="production-plan-body">
+                <!-- Data will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        loadProductionPlan();
+        loadProductionChart();
+        loadDemandChart();
+    });
+
+    async function loadProductionPlan() {
+        const response = await fetch('/api/production_plan');
+        const data = await response.json();
+        
+        const tableBody = document.getElementById('production-plan-body');
+        tableBody.innerHTML = '';
+        
+        data.forEach(item => {
+            const row = document.createElement('tr');
+            
+            // Determine status class
+            let statusClass = '';
+            if (item.status === 'completed') statusClass = 'status-completed';
+            else if (item.status === 'in_progress') statusClass = 'status-progress';
+            else statusClass = 'status-planned';
+            
+            row.innerHTML = `
+                <td>${item.product}</td>
+                <td>${item.planned_qty}</td>
+                <td>${item.actual_qty}</td>
+                <td><span class="status-badge ${statusClass}">${item.status}</span></td>
+                <td>${item.due_date}</td>
+            `;
+            
+            tableBody.appendChild(row);
+        });
+    }
+
+    async function loadProductionChart() {
+        const response = await fetch('/api/production_plan');
+        const data = await response.json();
+        
+        const products = data.map(item => item.product);
+        const planned = data.map(item => item.planned_qty);
+        const actual = data.map(item => item.actual_qty);
+        
+        const ctx = document.getElementById('productionChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: products,
+                datasets: [
+                    {
+                        label: 'Rencana Produksi',
+                        data: planned,
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Actual Produksi',
+                        data: actual,
+                        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Jumlah'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    async function loadDemandChart() {
+        // Simulated demand data
+        const products = ['Rokok Surya 12', 'Indomie Goreng', 'Aqua Gelas', 'Minyak Goreng', 'Telur 1kg'];
+        const demand = [1250, 980, 875, 652, 521];
+        
+        const ctx = document.getElementById('demandChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt'],
+                datasets: [{
+                    label: 'Trend Permintaan',
+                    data: [800, 850, 900, 920, 950, 1000, 1050, 1100, 1150, 1250],
+                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    borderWidth: 2,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Jumlah Permintaan'
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

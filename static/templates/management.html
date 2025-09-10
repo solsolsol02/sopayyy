@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Manajemen{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h2>Dashboard Manajemen</h2>
+        <p>Ringkasan kinerja perusahaan dan analisis bisnis</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Pendapatan Bulan Ini</h3>
+            <p class="stat-value">Rp 125.250.000</p>
+            <p class="stat-change">+12.5% dari bulan lalu</p>
+        </div>
+        <div class="stat-card">
+            <h3>Total Penjualan</h3>
+            <p class="stat-value">8.452</p>
+            <p class="stat-change">+8.3% dari bulan lalu</p>
+        </div>
+        <div class="stat-card">
+            <h3>Produk Terlaris</h3>
+            <p class="stat-value">Product A</p>
+            <p class="stat-change">1.250 terjual</p>
+        </div>
+        <div class="stat-card">
+            <h3>Inventory Status</h3>
+            <p class="stat-value">82%</p>
+            <p class="stat-change">5 produk stok rendah</p>
+        </div>
+    </div>
+
+    <div class="charts-row">
+        <div class="chart-container">
+            <h3>Tren Penjualan 30 Hari Terakhir</h3>
+            <canvas id="salesChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Peramalan Penjualan</h3>
+            <canvas id="forecastChart"></canvas>
+        </div>
+    </div>
+
+    <div class="charts-row">
+        <div class="chart-container">
+            <h3>Status Inventory</h3>
+            <canvas id="inventoryChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Top 5 Produk Terlaris</h3>
+            <canvas id="topProductsChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        loadSalesChart();
+        loadForecastChart();
+        loadInventoryChart();
+        loadTopProductsChart();
+    });
+</script>
+{% endblock %}
